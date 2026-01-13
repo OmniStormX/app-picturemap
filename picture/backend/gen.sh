@@ -1,0 +1,1 @@
+protoc -I ./api/proto --go_out=./internal/service --go_opt=paths=source_relative --go-grpc_out=./internal/service --go-grpc_opt=paths=source_relative --grpc-gateway_out=./internal/service --grpc-gateway_opt=paths=import ./api/proto/user/user.proto

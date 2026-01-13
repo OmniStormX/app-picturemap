@@ -1,0 +1,72 @@
+
+syntax = "proto3";
+
+package api.user;
+
+
+option go_package = ".;userpb";
+
+// UserService 用户服务
+service UserService {
+    // Login 登录
+    rpc Login (LoginRequest) returns (LoginReply) {}
+    // Register 注册
+    rpc Register (RegisterRequest) returns (RegisterReply) {}
+    // GetList 获取图片列表
+    rpc GetList(GetListRequest) returns (GetListReply) {}
+    // Upload 上传图片
+    rpc Upload(UploadRequest) returns (UploadReply) {}
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+    string token = 3;
+    bool login_by_token = 4;
+}
+
+message LoginReply {
+    string status = 1;
+    string username = 2;
+    string token = 3;
+}
+
+message RegisterRequest {
+    string status = 1;
+    string username = 2;
+    string password = 3;
+}
+
+message RegisterReply {
+    string status = 1;
+    string token = 2;
+    string username = 3;
+}
+
+
+message GetListRequest {
+    string status = 1;
+    repeated Picture picture = 2;
+}
+
+message Picture {
+    string id = 1;
+    string figure_name = 2;
+}
+
+message GetListReply {
+    string status = 1;
+    repeated RegisterReply users = 2;
+}
+
+
+message UploadRequest {
+    string id = 1;
+    string figure_name = 2;
+    string url = 3;
+}
+
+message UploadReply {
+    string id = 1;
+    string status = 2;
+}
