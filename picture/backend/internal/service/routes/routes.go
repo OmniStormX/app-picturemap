@@ -21,10 +21,12 @@ func RegisterRoutes(r *gin.Engine) {
 		c.Next()
 	})
 
-	protected := r.Group("/protected")
 	r.POST("/register", user_service.Register)
 	r.POST("/login", user_service.Login)
 	r.GET("/download", user_service.Download)
+	r.Static("/uploads", "./uploads")
+
+	protected := r.Group("/protected")
 	protected.Use(JwtAuthMiddleware)
 	{
 		protected.POST("/list", user_service.GetPictureList)

@@ -6,19 +6,28 @@ import (
 	modal_user "backend/modal/user"
 	"backend/utils"
 	"image"
+	"io"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetPictureList(c *gin.Context) {
 	// 从请求中获取分页参数
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
-	log.Println("page:", page, "pageSize:", pageSize)
-	pictureList, err := database.GetPictureList(uint(page), uint(pageSize))
+	var req GetListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Println("bind json error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "bind json error",
+			},
+		})
+		return
+	}
+	// 从数据库中获取图片列表
+	pictureList, err := database.GetPictureList(uint(req.Page), uint(req.PageSize))
 	if err != nil {
 		log.Println("get picture list error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -29,6 +38,7 @@ func GetPictureList(c *gin.Context) {
 		})
 		return
 	}
+
 	successMsg := baseReply[PictureListReply]{
 		Status: "success",
 		Msg: PictureListReply{
@@ -65,6 +75,16 @@ func Upload(c *gin.Context) {
 	}
 	defer file.Close()
 
+	picture := picture.Picture{
+		Name: fileName,
+	}
+	picture.Hash, err = utils.HashFile(file)
+
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		panic(err)
+	}
+
 	image, _, err := image.Decode(file)
 	if err != nil {
 		log.Println("decode image error:", err)
@@ -77,12 +97,10 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	picture := picture.Picture{
-		Name: fileName,
-	}
-	picture.Hash, err = utils.HashFile(file)
+	log.Println("picture hash:", picture.Hash)
+
 	// 检查图片是否已经存在
-	if database.DB.Where("url = ?", picture.Hash).First(&picture).Error == nil {
+	if database.DB.Where("hash = ?", picture.Hash).First(&picture).Error == nil {
 		log.Println("picture already exists")
 		c.JSON(400, baseReply[UploadReply]{
 			Status: "success",
@@ -93,23 +111,15 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	pic_10x10 := utils.ResizeImage16x9(image)
-	pic_100x100 := utils.ResizeImage160x90(image)
+	pic_90x160 := utils.ResizeImage90x160(image)
+	pic_9x16 := utils.ResizeImage9x16(image)
 	// 把图片保存到 /upload/img 文件夹
 	// 图片名字加上随机哈希串
-	if err != nil {
-		log.Println("hash file error:", err)
-		c.JSON(400, baseReply[ErrorReply]{
-			Status: "error",
-			Msg: ErrorReply{
-				Error: "hash file error",
-			},
-		})
-		return
-	}
 
-	utils.SaveImage(pic_10x10, "./upload/img/"+fileName+"_16x9.jpg")
-	utils.SaveImage(pic_100x100, "./upload/img/"+fileName+"_160x90.jpg")
+	utils.SaveImage(image, "./uploads/img/"+fileName+".webp")
+	utils.SaveImage(pic_90x160, "./uploads/img/"+fileName+"_90x160.webp")
+	utils.SaveImage(pic_9x16, "./uploads/img/"+fileName+"_9x16.webp")
+	log.Println("picture upload success.")
 	// 把图片保存到数据库
 
 	database.DB.Create(&picture)

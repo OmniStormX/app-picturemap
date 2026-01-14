@@ -27,7 +27,8 @@ type GetListReply struct {
 }
 
 type GetListRequest struct {
-	Page uint `json:"page"`
+	Page     uint `json:"page"`
+	PageSize uint `json:"pageSize"`
 }
 
 type UploadRequest struct {
