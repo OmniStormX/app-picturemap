@@ -6,10 +6,13 @@ import pymysql
 import sys
 import traceback
 from pathlib import Path
+from tqdm import tqdm
+import glob
 
 Image.MAX_IMAGE_PIXELS = 200000000
 max_width = 1400
 max_height = 2800
+
 def calculate_file_hash(filepath):
     """计算文件的SHA256哈希值"""
     hash_sha256 = hashlib.sha256()
@@ -69,6 +72,17 @@ def insert_picture_record(conn, name, hash_value):
         return False
 
 
+def get_all_supported_files(test_dir, supported_formats):
+    """获取所有支持格式的文件列表"""
+    all_files = []
+    for root, dirs, files in os.walk(test_dir):
+        for file in files:
+            file_ext = os.path.splitext(file)[1].lower()
+            if file_ext in supported_formats:
+                all_files.append(os.path.join(root, file))
+    return all_files
+
+
 def process_images():
     """处理图片的主要函数"""
     test_dir = "./img-test"
@@ -77,8 +91,17 @@ def process_images():
     # 确保上传目录存在
     os.makedirs(upload_dir, exist_ok=True)
     
-    # 支持的图片格式
-    supported_formats = ['.jpg', '.jpeg', '.png']
+    # 支持的图片格式（扩展了更多常见格式）
+    supported_formats = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.gif']
+    
+    # 获取所有待处理的文件
+    all_files = get_all_supported_files(test_dir, supported_formats)
+    
+    if not all_files:
+        print("No supported image files found in the directory and its subdirectories.")
+        return
+    
+    print(f"Found {len(all_files)} supported image files to process.")
     
     # 连接数据库
     try:
@@ -88,65 +111,63 @@ def process_images():
         print("Please make sure your MySQL database is running and connection details are correct.")
         return
     
-    # 遍历 img-test 目录
-    for root, dirs, files in os.walk(test_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            file_ext = os.path.splitext(file)[1].lower()
+    # 使用tqdm创建进度条
+    success_count = 0
+    fail_count = 0
+    
+    for file_path in tqdm(all_files, desc="Processing Images", unit="file"):
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        try:
+            # 计算文件哈希
+            file_hash = calculate_file_hash(file_path)
             
-            if file_ext not in supported_formats:
+            # 检查数据库中是否已存在相同哈希值的图片
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM pictures WHERE hash = %s", (file_hash,))
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                # 文件已存在，跳过
                 continue
             
-            print(f"Processing file: {file_path}")
-            
-            try:
-                # 计算文件哈希
-                file_hash = calculate_file_hash(file_path)
-                print(f"Hash: {file_hash}")
+            # 打开并处理图片
+            with Image.open(file_path) as img:
+                # 转换为RGB模式（如果是RGBA或其他模式）
+                if img.mode in ('RGBA', 'LA', 'P', 'LA', 'RGBA'):
+                    img = img.convert('RGB')
                 
-                # 检查数据库中是否已存在相同哈希值的图片
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM pictures WHERE hash = %s", (file_hash,))
-                count = cursor.fetchone()[0]
+                # 获取文件名（不含扩展名）
+                filename_without_ext = os.path.splitext(os.path.basename(file_path))[0]
                 
-                if count > 0:
-                    print(f"Picture with hash {file_hash} already exists in database")
-                    continue
+                # 生成缩略图（类似CSS object-fit: cover效果）
+                pic_9x16 = resize_image_9x16(img)
+                pic_90x160 = resize_image_90x160(img)
                 
-                # 打开并处理图片
-                with Image.open(file_path) as img:
-                    # 转换为RGB模式（如果是RGBA或其他模式）
-                    if img.mode in ('RGBA', 'LA', 'P'):
-                        img = img.convert('RGB')
+                # 定义保存路径 - 改为WebP格式
+                original_dest = os.path.join(upload_dir, f"{filename_without_ext}.webp")
+                thumb_9x16_dest = os.path.join(upload_dir, f"{filename_without_ext}_9x16.webp")
+                thumb_90x160_dest = os.path.join(upload_dir, f"{filename_without_ext}_90x160.webp")
+                
+                # 保存原图和缩略图 - 改为WebP格式
+                # 创建一个新的图像副本进行缩放以避免修改原始图像对象
+                img_resized = img.copy()
+                img_resized.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+                img_resized.save(original_dest, 'WEBP', quality=90)
+                pic_9x16.save(thumb_9x16_dest, 'WEBP', quality=90)
+                pic_90x160.save(thumb_90x160_dest, 'WEBP', quality=90)
+                
+                # 插入数据库记录
+                if insert_picture_record(conn, filename_without_ext, file_hash):
+                    success_count += 1
                     
-                    # 获取文件名（不含扩展名）
-                    filename_without_ext = os.path.splitext(os.path.basename(file_path))[0]
-                    
-                    # 生成缩略图（类似CSS object-fit: cover效果）
-                    pic_9x16 = resize_image_9x16(img)
-                    pic_90x160 = resize_image_90x160(img)
-                    
-                    # 定义保存路径 - 改为WebP格式
-                    original_dest = os.path.join(upload_dir, f"{filename_without_ext}.webp")
-                    thumb_9x16_dest = os.path.join(upload_dir, f"{filename_without_ext}_9x16.webp")
-                    thumb_90x160_dest = os.path.join(upload_dir, f"{filename_without_ext}_90x160.webp")
-                    
-                    # 保存原图和缩略图 - 改为WebP格式
-                    img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-                    img.save(original_dest, 'WEBP', quality=90)
-                    pic_9x16.save(thumb_9x16_dest, 'WEBP', quality=90)
-                    pic_90x160.save(thumb_90x160_dest, 'WEBP', quality=90)
-                    
-                    # 插入数据库记录
-                    if insert_picture_record(conn, filename_without_ext, file_hash):
-                        print(f"Successfully processed and saved {file_path} with hash {file_hash}")
-                    
-            except Exception as e:
-                print(f"Failed to process {file_path}: {e}")
-                traceback.print_exc()
+        except Exception as e:
+            fail_count += 1
+            # 不在进度条中打印错误，避免干扰进度条显示
     
     conn.close()
-    print("Batch upload completed!")
+    
+    print(f"\nBatch upload completed! Successfully processed: {success_count} files, Failed: {fail_count} files.")
 
 
 if __name__ == "__main__":
@@ -163,6 +184,13 @@ if __name__ == "__main__":
     except ImportError:
         print("PyMySQL library is not installed. Please install it using:")
         print("pip install PyMySQL")
+        sys.exit(1)
+    
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        print("tqdm library is not installed. Please install it using:")
+        print("pip install tqdm")
         sys.exit(1)
     
     # 检查必要的目录

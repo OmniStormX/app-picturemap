@@ -52,6 +52,7 @@ func Upload(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	// 从文件名中去掉后缀
 	fileName := fileHeader.Filename[:len(fileHeader.Filename)-4]
+	log.Println("file name:", fileName)
 	if err != nil {
 		log.Println("get form file error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -86,6 +87,7 @@ func Upload(c *gin.Context) {
 	}
 
 	image, _, err := image.Decode(file)
+	image = utils.ResizeImage(image, utils.Maxwidth, utils.MaxHeight)
 	if err != nil {
 		log.Println("decode image error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -116,9 +118,41 @@ func Upload(c *gin.Context) {
 	// 把图片保存到 /upload/img 文件夹
 	// 图片名字加上随机哈希串
 
-	utils.SaveImage(image, "./uploads/img/"+fileName+".webp")
-	utils.SaveImage(pic_90x160, "./uploads/img/"+fileName+"_90x160.webp")
-	utils.SaveImage(pic_9x16, "./uploads/img/"+fileName+"_9x16.webp")
+	err = utils.SaveImage(image, "./uploads/img/"+fileName+".webp")
+	if err != nil {
+		log.Println("save image error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "save image error",
+			},
+		})
+		return
+	}
+	err = utils.SaveImage(pic_90x160, "./uploads/img/"+fileName+"_90x160.webp")
+	if err != nil {
+		log.Println("save image error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "save image error",
+			},
+		})
+		return
+	}
+	log.Println("save 9x16 image success. file name:", fileName+"_9x16.webp")
+	err = utils.SaveImage(pic_9x16, "./uploads/img/"+fileName+"_9x16.webp")
+	if err != nil {
+		log.Println("save image error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "save image error",
+			},
+		})
+		return
+	}
+
 	log.Println("picture upload success.")
 	// 把图片保存到数据库
 
