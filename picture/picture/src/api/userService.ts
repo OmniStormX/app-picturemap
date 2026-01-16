@@ -4,7 +4,7 @@ import { request } from "./http";
 import {
     BaseReply,
     LoginReply,
-    PictureListReply, RegisterReply, UploadImageReply,
+    PictureListReply, RegisterReply, UploadImageReply, GetListByTagReply, TagListReply,
 } from "./types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -79,3 +79,21 @@ export async function uploadPicture(fileName: string, fileUri: string) {
 //         return res.blob();
 //     });
 // }
+
+/* ========== Tag Picture ========== */
+export async function getPictureListByTag(tag: string, page: number, pageSize: number) {
+    const res = await request<BaseReply<GetListByTagReply>>("/protected/tag/search", {
+        method: "POST",
+        body: JSON.stringify({ tag, page, pageSize }),
+    });
+    return res.msg.picture_list;
+}
+
+/* ========== Tag ========== */
+export async function getTagList() {
+    const res = await request<BaseReply<TagListReply>>("/protected/tag/list", {
+        method: "POST",
+    });
+    return res.msg.tag_list;
+}
+

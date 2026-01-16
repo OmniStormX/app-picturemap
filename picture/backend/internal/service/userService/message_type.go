@@ -1,6 +1,9 @@
 package user_service
 
-import "backend/modal/picture"
+import (
+	"backend/modal/picture"
+	"backend/modal/tag"
+)
 
 type RegisterReply struct {
 	Status   string `json:"status"`
@@ -49,4 +52,21 @@ type LoginRequest struct {
 
 type PictureListReply struct {
 	PictureList []picture.Picture `json:"picture_list"`
+}
+
+type GetListByTagRequest struct {
+	Tag      string `json:"tag"`
+	Page     uint   `json:"page"`
+	PageSize uint   `json:"pageSize"`
+}
+
+type GetListByTagReply struct {
+	PictureList []picture.Picture `json:"picture_list"`
+}
+
+type GetTagListRequest struct {
+}
+
+type TagListReply struct {
+	TagList []tag.Tag `json:"tag_list"`
 }

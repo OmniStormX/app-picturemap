@@ -3,6 +3,7 @@ package database
 import (
 	"backend/configs"
 	"backend/modal/picture"
+	"backend/modal/tag"
 	modal_user "backend/modal/user"
 	"fmt"
 	"log"
@@ -93,6 +94,10 @@ func initTable() error {
 		return err
 	}
 	err = DB.AutoMigrate(&picture.Picture{})
+	if err != nil {
+		return err
+	}
+	err = DB.AutoMigrate(&tag.Tag{})
 	if err != nil {
 		return err
 	}

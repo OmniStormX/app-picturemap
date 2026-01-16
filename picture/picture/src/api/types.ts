@@ -1,9 +1,8 @@
-// src/api/types.ts
-
 /* Picture 与后端 modal/picture 对齐 */
 export interface Picture {
     pid: number;
     name: string;
+    url: string;     // 图片的 URL
     created_at?: string;
 }
 
@@ -35,35 +34,79 @@ export interface UploadReply {
     message: string;
 }
 
-
-export interface RegisterReply {
-    status: string;
-    token: string;
-}
-
-export interface BaseReply<T> {
-    status: string;
-    msg: T;
-}
-
-export type RootStackParamList = {
-    login: undefined;
-    main: undefined;
-};
-
-export type UploadImage = {
+export interface UploadImage {
     uri: string;
     name: string;
     size: number;
     type: string;
-};
+}
 
 export interface UploadImageReply {
     message: string;
 }
 
+/* 标签相关 */
+export interface Tag {
+    name: string;
+    count: number;
+}
+
+/* 请求和回复类型 */
+export interface GetListByTagRequest {
+    tag: string;
+    page: number;
+    pageSize: number;
+}
+
+export interface GetListByTagReply {
+    picture_list: Picture[];
+}
+
+export interface GetTagListRequest {
+    page: number;
+    pageSize: number;
+}
+
+export interface TagListReply {
+    tag_list: Tag[];
+}
+
+/* File 上传 */
+export interface UploadFile {
+    uri: string;
+    name: string;
+    type: string;
+    size: number;
+}
+
+/* Base Reply */
+export interface BaseReply<T> {
+    status: string;
+    msg: T;
+}
+
+/* React Navigation 类型 */
+export type RootStackParamList = {
+    login: undefined;
+    main: undefined;
+    tagResult: { tag: string };
+};
+
+/* Gallery Image */
 export interface GalleryImageObject {
     id: number;
     caption: string;
     url: string;
+}
+
+/* PictureList 组件的 Props */
+export interface PictureListProps {
+    fetchData: (page: number, pageSize: number) => Promise<any[]>;
+    ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
+}
+
+export interface PictureReceive {
+    pid: number;
+    name: string;
+    hash: string;
 }

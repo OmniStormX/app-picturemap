@@ -48,6 +48,74 @@ func GetPictureList(c *gin.Context) {
 	c.JSON(200, successMsg)
 }
 
+func GetListByTag(c *gin.Context) {
+	var req GetListByTagRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Println("bind json error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "bind json error",
+			},
+		})
+		return
+	}
+	// 从数据库中获取图片列表
+	pictureList, err := database.FindByTagFromPicture(req.Tag, uint(req.Page), uint(req.PageSize))
+	if err != nil {
+		log.Println("get form file error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "get form file error",
+			},
+		})
+		return
+	}
+
+	successMsg := baseReply[GetListByTagReply]{
+		Status: "success",
+		Msg: GetListByTagReply{
+			PictureList: pictureList,
+		},
+	}
+	c.JSON(200, successMsg)
+}
+
+func GetTagList(c *gin.Context) {
+	// var req GetTagListRequest
+	// if err := c.ShouldBindJSON(&req); err != nil {
+	// 	log.Println("bind json error:", err)
+	// 	c.JSON(400, baseReply[ErrorReply]{
+	// 		Status: "error",
+	// 		Msg: ErrorReply{
+	// 			Error: "bind json error",
+	// 		},
+	// 	})
+	// 	return
+	// }
+
+	// 从数据库中获取标签列表
+	tagList, err := database.GetTagList()
+	if err != nil {
+		log.Println("get tag list error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "get tag list error",
+			},
+		})
+		return
+	}
+	successMsg := baseReply[TagListReply]{
+		Status: "success",
+		Msg: TagListReply{
+			TagList: tagList,
+		},
+	}
+	c.JSON(200, successMsg)
+}
+
 func Upload(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	// 从文件名中去掉后缀

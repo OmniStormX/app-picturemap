@@ -30,6 +30,8 @@ func RegisterRoutes(r *gin.Engine) {
 	protected.Use(JwtAuthMiddleware)
 	{
 		protected.POST("/list", user_service.GetPictureList)
+		protected.POST("/tag/search", user_service.GetListByTag)
+		protected.POST("/tag/list", user_service.GetTagList)
 		protected.POST("/upload", user_service.Upload)
 	}
 
