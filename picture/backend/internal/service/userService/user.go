@@ -221,9 +221,13 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"status": "success",
-		"token":  token,
+	c.JSON(200, baseReply[RegisterReply]{
+		Status: "success",
+		Msg: RegisterReply{
+			Status:   "success",
+			Username: req.Username,
+			Token:    token,
+		},
 	})
 }
 
