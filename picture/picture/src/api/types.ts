@@ -110,3 +110,9 @@ export interface PictureReceive {
     name: string;
     hash: string;
 }
+
+
+export interface UploadImageRequest {
+    tags: string[];
+    name: string;
+}

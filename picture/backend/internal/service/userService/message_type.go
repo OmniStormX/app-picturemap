@@ -70,3 +70,8 @@ type GetTagListRequest struct {
 type TagListReply struct {
 	TagList []tag.Tag `json:"tag_list"`
 }
+
+type UploadImageRequest struct {
+	Tags []string `json:"tags"`
+	Name string   `json:"name"`
+}

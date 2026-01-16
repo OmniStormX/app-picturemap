@@ -48,20 +48,35 @@ export async function getPictureList(page: number, pageSize: number) {
     });
 }
 
-export async function uploadPicture(fileName: string, fileUri: string) {
+// 上传图片
+export async function uploadPicture(
+    fileName: string, 
+    fileUri: string, 
+    name: string, 
+    tags: string[]
+) {
     const formData = new FormData();
-    console.log("[uploadPicture] fileUri", fileUri);
+    
+    // 基础文件字段
     formData.append("file", {
         uri: fileUri,
-        name: fileName,
+        name: name,
         type: "image/jpeg",
     } as any);
+
+    // 后端 UploadImageRequest 对应的字段
+    formData.append("name", name);
+    
+    // 循环添加 tags 以符合 []string 结构
+    tags.forEach(tag => {
+        formData.append("tags", tag);
+    });
 
     return await request<BaseReply<UploadImageReply>>("/protected/upload", {
         method: "POST",
         // @ts-ignore
         body: formData,
-    })
+    });
 }
 
 // export function downloadPicture(token: string, filename: string) {

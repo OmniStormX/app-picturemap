@@ -3,12 +3,18 @@ package user_service
 import (
 	"backend/database"
 	"backend/modal/picture"
+	"backend/modal/tag"
 	modal_user "backend/modal/user"
 	"backend/utils"
+	"encoding/json"
 	"image"
 	"io"
 	"log"
+	"net/url"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -63,11 +69,11 @@ func GetListByTag(c *gin.Context) {
 	// 从数据库中获取图片列表
 	pictureList, err := database.FindByTagFromPicture(req.Tag, uint(req.Page), uint(req.PageSize))
 	if err != nil {
-		log.Println("get form file error:", err)
+		log.Println("get picture list by tag error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
 			Status: "error",
 			Msg: ErrorReply{
-				Error: "get form file error",
+				Error: "get picture list by tag error",
 			},
 		})
 		return
@@ -118,9 +124,6 @@ func GetTagList(c *gin.Context) {
 
 func Upload(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
-	// 从文件名中去掉后缀
-	fileName := fileHeader.Filename[:len(fileHeader.Filename)-4]
-	log.Println("file name:", fileName)
 	if err != nil {
 		log.Println("get form file error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -131,6 +134,24 @@ func Upload(c *gin.Context) {
 		})
 		return
 	}
+
+	// 正确处理文件名，去除扩展名
+	fileName := fileHeader.Filename
+	// 1. 修复潜在的 URL 编码问题（如果文件名被前端二次编码过）
+	decodedName, err := url.QueryUnescape(fileName)
+	if err == nil {
+		fileName = decodedName
+	}
+
+	ext := filepath.Ext(fileName) // 得到 ".webp"
+	baseName := strings.TrimSuffix(fileName, ext)
+
+	// 3. 【关键】清理非法字符
+	reg := regexp.MustCompile(`[\\/:*?"<>|]`)
+	baseName = reg.ReplaceAllString(baseName, "_")
+
+	log.Println("处理后的文件名:", baseName)
+
 	file, err := fileHeader.Open()
 	if err != nil {
 		log.Println("Failed to open file.")
@@ -143,6 +164,30 @@ func Upload(c *gin.Context) {
 		return
 	}
 	defer file.Close()
+
+	// 尝试从表单中获取标签数据
+	tagsStr := c.PostForm("tags") // 如果前端以这种方式发送标签
+	var tags []string
+
+	// 如果前端将标签作为JSON字符串发送
+	if tagsStr != "" {
+		// 尝试解析JSON格式的标签
+		if err := json.Unmarshal([]byte(tagsStr), &tags); err != nil {
+			log.Println("parse tags error:", err)
+			// 如果不是JSON格式，可能是逗号分隔的字符串
+			tags = strings.Split(tagsStr, ",")
+			for i, tag := range tags {
+				tags[i] = strings.TrimSpace(tag)
+			}
+		}
+	} else {
+		// 尝试直接从表单获取多个标签字段
+		tags = c.PostFormArray("tags[]")
+		if len(tags) == 0 {
+			// 如果没有找到标签，则创建空切片
+			tags = []string{}
+		}
+	}
 
 	picture := picture.Picture{
 		Name: fileName,
@@ -179,6 +224,36 @@ func Upload(c *gin.Context) {
 			},
 		})
 		return
+	}
+
+	// 先保存图片到数据库以获得PID
+	err = database.DB.Create(&picture).Error
+	if err != nil {
+		log.Println("save picture to database error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "save picture to database error",
+			},
+		})
+		return
+	}
+
+	// 为每个标签创建关联
+	for _, tagName := range tags {
+		if tagName != "" { // 避免空标签
+			tagRecord := &tag.Tag{
+				Name: tagName,
+				Pid:  int(picture.Pid),
+			}
+			err = database.AddTag(tagRecord)
+			if err != nil {
+				log.Printf("add tag error. tag name: %s, pid: %d, error: %v", tagName, picture.Pid, err)
+				// 不返回错误，只是记录
+			} else {
+				log.Printf("add tag success. tag name: %s, pid: %d", tagName, picture.Pid)
+			}
+		}
 	}
 
 	pic_90x160 := utils.ResizeImage90x160(image)
@@ -222,9 +297,6 @@ func Upload(c *gin.Context) {
 	}
 
 	log.Println("picture upload success.")
-	// 把图片保存到数据库
-
-	database.DB.Create(&picture)
 
 	successMsg := baseReply[UploadReply]{
 		Status: "success",
@@ -234,7 +306,6 @@ func Upload(c *gin.Context) {
 	}
 	c.JSON(200, successMsg)
 }
-
 func Register(c *gin.Context) {
 
 	var user modal_user.User
