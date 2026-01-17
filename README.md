@@ -1,203 +1,169 @@
-# PictureMap - 在线图片 app 
+# app-picturemap
 
-PictureMap是一个基于React Native的移动应用程序，结合Go后端服务，提供图片上传、管理、标签化和浏览功能。该应用允许用户上传图片，系统自动解析图片标签并存储到数据库中，便于后续检索和分类。
+一款用于管理和分享图片的移动应用，支持标签功能。前端使用 React Native 构建，后端使用 Go 开发。该应用允许用户上传图像、添加标签、浏览图片列表，并按标签搜索。
 
-## 功能特性
+Github：https://github.com/OmniStormX/app-picturemap
 
-- **用户认证系统**: 提供用户注册和登录功能，使用JWT进行身份验证
-- **图片上传**: 支持用户从相册选择图片并上传到服务器
-- **智能标签解析**: 自动从图片名称中提取标签信息
-- **图片管理**: 提供图片列表展示、详情查看和缩放功能
-- **缓存机制**: 使用Redis缓存提高数据访问速度
-- **图片处理**: 自动生成多种尺寸的缩略图，优化加载性能
-- **数据库集成**: 使用MySQL存储图片元数据，支持快速查询
-- **跨平台支持**: 支持Android和iOS双平台
+演示录屏：bilibili: https://www.bilibili.com/video/BV1uurSBREh5/
 
-## 技术栈
+## 产品功能介绍
 
-### 前端 (React Native)
-- React Native 0.83.1
-- TypeScript
-- Redux Toolkit (状态管理)
-- React Navigation (导航)
-- React Native Paper (UI组件)
-- react-native-image-picker (图片选择)
-- react-native-fast-image (高性能图片加载)
-- react-native-zoomable-view (图片缩放)
+### 核心功能
 
-### 后端 (Go)
-- Go 1.25
-- Gin Web Framework
-- GORM (数据库操作)
-- JWT (身份验证)
-- MySQL (数据库)
-- Redis (缓存)
-- gRPC (可选服务通信)
-- Imaging (图片处理)
+- **用户认证**：支持用户注册和登录，使用基于令牌的安全认证（JWT）。用户可以创建账户并登录以访问个性化功能。
+- **图片上传**：用户可以从设备图库中选择图像，添加名称，并附加多个标签后上传。应用处理图像压缩并上传到服务器。
+- **图片浏览**：以网格列表形式显示图片，支持懒加载和无限滚动。包括下拉刷新以更新列表。
+- **标签系统**：用户可以在上传时添加自定义标签。首页显示热门标签的水平可滚动列表，允许快速导航到特定标签的图片结果。
+- **按标签搜索**：专用屏幕用于查看按特定标签过滤的图片，支持分页。
+- **预览和占位图像**：优化图像加载，首先使用低分辨率占位符（例如 90x160 缩略图），以实现更快渲染，按需切换到全分辨率。
 
-## 系统架构
+### 用户体验
 
-### 前端组件
-- **用户界面**: 使用React Native构建跨平台UI
-- **导航系统**: React Navigation实现多层级导航
-- **状态管理**: Redux Toolkit统一管理应用状态
-- **网络请求**: 封装的HTTP客户端处理API通信
-- **图片处理**: 本地图片选择、预览和上传
+- 使用 React Native Paper 实现 Material Design 3 (MD3) 兼容的 UI，提供现代、响应式的界面。
+- 支持深色/浅色主题，通过 React Native Paper 实现。
+- 错误处理和反馈，例如上传失败或无效输入的警报。
+- 使用 Redux 进行状态管理，以高效处理数据（例如图片列表和加载状态）。
 
-### 后端服务
-- **API层**: Gin框架提供RESTful API
-- **业务逻辑**: Go服务处理用户请求和业务规则
-- **数据访问**: GORM ORM操作MySQL数据库
-- **缓存层**: Redis缓存热点数据
-- **图片处理**: 生成多种尺寸的图片缩略图
-- **安全机制**: JWT令牌验证用户身份
+该应用设计用于希望通过标签简单组织和发现图片的用户，类似于带有社交标签元素的轻量级照片库。
 
-## 数据库设计
+## 程序概要设计
 
-### 主要表结构
-- **users**: 存储用户信息（用户名、密码哈希等）
-- **pictures**: 存储图片元数据（名称、哈希值、PID）
-- **tags**: 存储标签信息（标签名称、关联的图片ID）
-- **relations**: 存储图片与标签的关联关系
+### 前端（React Native）
 
-### 约束与索引
-- 图片名称(name)字段设置唯一索引，防止重复名称
-- 图片哈希(hash)字段设置唯一索引，防止重复上传
-- 使用复合索引优化按标签查询图片的性能
+- **导航**：使用 React Navigation，底部标签用于首页（图片）和上传。栈导航用于登录/注册和标签结果屏幕。
+- **组件**：
+  - `PictureList`：可复用组件，用于显示分页图片网格，支持刷新和加载更多功能。
+  - `Picture90x160`：单个图片卡片，支持占位符和懒加载。
+  - `Upload`：用于图像选择、命名、标签和提交的表单。
+- **状态管理**：Redux 分片用于图片（列表、加载状态）和用户（用户名、令牌）。
+- **API 集成**：服务层（`services/`）抽象 API 调用（例如 `fetchPictures`、`uploadImage`），使用类似 Axios 的 HTTP 请求。
+- **数据流**：应用加载时，获取初始图片和标签。上传触发服务器调用，使用 FormData 处理图像。
 
-## 安全特性
+### 后端（Go）
 
-- **JWT认证**: 所有受保护路由需要有效的JWT令牌
-- **密码加密**: 用户密码使用bcrypt算法加密存储
-- **输入验证**: 对所有用户输入进行验证和清理
-- **SQL注入防护**: 使用参数化查询防止SQL注入
-- **CORS策略**: 配置适当的跨域资源共享策略
+- **API 结构**：RESTful 端点用于用户认证、图片上传、列表检索和标签管理。。
+- **数据库**：MySQL 用于持久存储（用户、图片、标签）。`database/mapper/` 中的类似 GORM 的映射器用于 CRUD 操作。
+- **缓存**：Redis 用于缓存（例如用户会话或频繁查询），通过 `cache/cache.go` 实现。
+- **认证**：JWT 用于令牌生成和验证，在 `utils/jwt.go` 中实现。
+- **图像处理**：上传在 `internal/service/routes/static_source_upload.go` 中处理，使用图像操作实用工具（`utils/image.go`）。
+- **测试**：脚本如 `test/add_tag_test.py` 用于 API 测试。
 
-## 图片处理流程
+### 整体设计原则
 
-1. 用户选择图片并上传到服务器
-2. 服务器计算图片哈希值，检查是否已存在
-3. 解析图片名称提取标签信息
-4. 生成多种尺寸的缩略图（原图、9x16预览、90x160缩略图）
-5. 保存图片到文件系统，元数据存入数据库
-6. 创建图片与标签的关联关系
+- **模块化**：关注点分离，使用服务、组件和实用工具。
+- **可扩展**：API 和前端中的分页处理大型数据集。
+- **安全**：密码使用 SHA-256 哈希（`utils/sha-256.go`），JWT 用于认证。
+- **高效**：使用 Redis 缓存，优化图像缩略图。
 
-## 性能优化
+## 软件架构图
 
-- **缓存策略**: 使用Redis缓存热门图片列表和详情
-- **图片压缩**: 自动将上传的图片转换为WebP格式以减少存储空间
-- **懒加载**: 在图片列表中实现懒加载以提高滚动性能
-- **分页查询**: 对图片列表使用分页减少单次数据库查询量
-- **布隆过滤器**: 使用布隆过滤器快速判断图片是否已存在
+以下是高级架构图，使用 ASCII 艺术表示：
 
-## 环境配置
-
-### 前端依赖
-- Node.js >= 20
-- React Native CLI
-- Android Studio (Android开发)
-- Xcode (iOS开发)
-
-### 后端依赖
-- Go 1.25+
-- MySQL 8.0+
-- Redis 6.0+
-
-### 环境变量配置
-
-#### 前端 (.env)
-```env
-BASE_URL=http://localhost:8080
+```
++-------------------+       +-------------------+
+|   Mobile Client   |       |     Backend       |
+| (React Native)    |       |      (Go)         |
++-------------------+       +-------------------+
+| - App.tsx         |       | - cmd/main.go     |
+| - Navigation      |  HTTP | - API Routes      |
+|   - Bottom Tabs   |<----->|   - User Service  |
+|   - Stack Screens | (JWT) |   - Picture Upload|
+| - Components      |       | - Database (MySQL)|
+|   - PictureList   |       | - Cache (Redis)   |
+|   - Upload Form   |       | - Utils (JWT, Img)|
+| - Redux Store     |       +-------------------+
+| - Services (API)  |
++-------------------+
+          |
+          v
++-------------------+
+|   External Libs   |
+| - RN Image Picker |
+| - RN Paper (UI)   |
+| - AsyncStorage    |
++-------------------+
 ```
 
-#### 后端 (.env)
-```env
-JWT_SECRET="OmnistormPicture"
-DATABASE_URL="mysql://root:123456@tcp(127.0.0.1:3306)/picturemap"
-PORT=8080
-UPLOAD_DIR="./uploads"
-UPLOAD_IMAGE_DIR="./uploads/img"
-MYSQL_USER="root"
-MYSQL_PASSWORD="123456"
-MYSQL_DATABASE="picturemap"
-MYSQL_HOST="127.0.0.1"
-MYSQL_PORT="3306"
-REDIS_HOST="127.0.0.1"
-REDIS_PORT="6379"
-```
+- **客户端-服务器交互**：前端发送 HTTP 请求（例如 POST 用于上传，GET 用于列表），通过存储在 AsyncStorage 中的 JWT 令牌进行认证。
+- **数据层**：后端与 MySQL 交互进行 CRUD，并使用 Redis 进行缓存。
+- **流程示例**：用户登录 → 存储令牌 → 获取图片 → 在网格中显示 → 上传新图像并添加标签 → 刷新更新列表。
 
-## 安装与运行
+## 技术亮点及其实现原理
 
-### 前端设置
-1. 进入前端项目目录
-```bash
-cd picture
-```
+### 1. **懒加载图像与占位符**
 
-2. 安装依赖
-```bash
-npm install
-```
+   - **亮点**：通过首先加载低分辨率缩略图，然后加载全图像，提高性能。
+   - **原理**：使用 `getPreviewUrl` 和 `getImageUrl` 首先获取 90x160 WEBP 缩略图。Redux 跟踪加载状态（`setLoadedById`）。在滚动/查看时，使用 React Native 的 `Image` 组件切换到全 WEBP，支持渐进加载。
 
-3. 启动开发服务器
-```bash
-npm start
-```
+### 2. **JWT 认证**
 
-4. 运行应用
-```bash
-# Android
-npm run android
+   - **亮点**：无需服务器端会话的安全会话管理。
+   - **原理**：后端在登录/注册时生成 JWT 令牌（`utils/jwt.go`）。前端存储在 AsyncStorage 中，并在受保护路由的头部中包含。后端验证防止未授权访问。
 
-# iOS
-npm run ios
-```
+### 3. **Redux 用于状态管理**
+
+   - **亮点**：图片和用户的集中状态，便于高效更新（例如上传后）。
+   - **原理**：分片（如 `picture.ts`、`userSlice.ts`）处理操作如 `addPicture` 和 `clearPictures`（登出时）。选择器获取数据，无需属性钻取。
+
+### 4. **Redis 缓存**
+
+   - **亮点**：加速频繁查询，如标签列表或用户数据。
+   - **原理**：`cache/cache.go` 集成 Redis 用于存储序列化数据。在 API 调用时，首先检查缓存；如果未命中，则查询 DB 并缓存结果，带过期时间。
+
+### 5. **带标签的图像上传**
+
+   - **亮点**：多部分表单处理，标签作为数组。
+   - **原理**：前端使用 `FormData` 附加图像、名称和标签[]。后端在 `static_source_upload.go` 中解析，存储在 DB 中，并使用 `utils/image.go` 生成缩略图（可能使用像 imaging 这样的图像库）。
+
+## 安装和运行
+
+### 先决条件
+
+- Node.js（用于前端）
+- Go（用于后端）
+- MySQL 和 Redis 服务器
+- Android/iOS 模拟器或设备
 
 ### 后端设置
-1. 进入后端项目目录
-```bash
-cd backend
+
+1. 导航到 `backend/`。
+2. 运行 `go mod tidy` 安装依赖。
+3. 在 `configs/config.go` 中配置 DB/Redis 细节。
+4. 使用 `go run cmd/main.go` 启动。
+5. 如需要，使用 `docker-compose.yml` 设置 MySQL/Redis。
+
+### 前端设置
+
+1. 导航到 `picture/`。
+2. 运行 `npm install` 或 `yarn install`。
+3. 对于 Android：`npx react-native run-android`。
+4. 对于 iOS：`npx pod-install` 然后 `npx react-native run-ios`。
+
+### 测试
+
+- 使用 `backend/test/add_tag_test.py` 进行 API 测试。
+- 确保后端运行在 `src/config.ts` 中定义的基本 URL 上。
+
+## 许可证
+
 ```
+Copyright (c) [年份] [版权所有者]
 
-2. 安装Go依赖
-```bash
-go mod tidy
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
-
-3. 启动服务（推荐使用Air热重载）
-```bash
-air
-```
-
-或者直接运行
-```bash
-go run cmd/main.go
-```
-
-### 数据库初始化
-1. 创建MySQL数据库
-```sql
-CREATE DATABASE picturemap CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-2. 运行迁移脚本或让GORM自动创建表结构
-
-### Redis设置
-1. 安装并启动Redis服务
-2. 确保Redis配置与.env文件中的设置匹配
-
-## API接口
-
-### 用户认证
-- `POST /register` - 用户注册
-- `POST /login` - 用户登录
-
-### 图片管理
-- `GET /protected/list` - 获取图片列表（分页）
-- `POST /protected/upload` - 上传图片
-- `GET /protected/tag/search` - 按标签搜索图片
-- `GET /protected/tag/list` - 获取标签列表
-- `GET /download/:filename` - 下载图片
-
-### 认证要求
-除注册和登录外，所有API都需要在请求头中包含有效的JWT令牌：

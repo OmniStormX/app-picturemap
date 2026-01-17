@@ -1,1 +1,4 @@
 .idea
+gen.py
+generate_document.bat
+PROJECT_DOCUMENT.md

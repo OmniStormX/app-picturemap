@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { PictureList } from "../components/picture/pictureList";
 import { View } from "react-native";
 import { getPictureListByTag } from "../api/userService";
-
 // screens/TagResult.tsx
 export function TagResult({ route, navigation }: any) {
     const { tag } = route.params;
