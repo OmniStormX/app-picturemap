@@ -3,8 +3,10 @@ import { FlatList, View, ActivityIndicator, Text, StyleSheet, RefreshControl } f
 import { PictureListProps, PictureReceive } from '../../api/types';
 import { useTheme } from 'react-native-paper'; // 用于获取天青色主题
 import { Picture90x160 } from './picture';
+import { get } from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
+import { getTagList } from '../../api/userService';
 
-export function PictureList({ fetchData, ListHeaderComponent }: PictureListProps) {
+export function PictureList({ fetchData, ListHeaderComponent, setTagList }: PictureListProps) {
     const theme = useTheme();
     const [data, setData] = useState<PictureReceive[]>([]);
     const [page, setPage] = useState(1);
@@ -27,6 +29,7 @@ export function PictureList({ fetchData, ListHeaderComponent }: PictureListProps
                 setData(list);
                 setHasMore(list.length >= 12);
                 setPage(2);
+                await getTagList().then(setTagList);
             } else {
                 // 如果是分页，追加数据
                 if (list.length < 12) setHasMore(false);

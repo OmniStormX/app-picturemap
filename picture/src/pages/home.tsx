@@ -55,6 +55,7 @@ export function Home({ navigation }: Props) {
             <PictureList
                 fetchData={(p, s) => fetchPictures(p, s)}
                 ListHeaderComponent={renderTagHeader}
+                setTagList={setTags}
             />
         </View>
     );

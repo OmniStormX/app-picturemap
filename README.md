@@ -1,4 +1,4 @@
-# PictureMap - 图床应用
+# PictureMap - 在线图片 app 
 
 PictureMap是一个基于React Native的移动应用程序，结合Go后端服务，提供图片上传、管理、标签化和浏览功能。该应用允许用户上传图片，系统自动解析图片标签并存储到数据库中，便于后续检索和分类。
 

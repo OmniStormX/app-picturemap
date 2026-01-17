@@ -44,7 +44,7 @@ func ResizeImage90x160(imageFile image.Image) image.Image {
 }
 
 func ResizeImage9x16(imageFile image.Image) image.Image {
-	image_9x16 := imaging.Fill(imageFile, 270, 480, imaging.Center, imaging.Lanczos)
+	image_9x16 := imaging.Fill(imageFile, 9, 16, imaging.Center, imaging.Lanczos)
 	return image_9x16
 }
 

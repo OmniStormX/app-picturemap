@@ -103,6 +103,7 @@ export interface GalleryImageObject {
 export interface PictureListProps {
     fetchData: (page: number, pageSize: number) => Promise<any[]>;
     ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
+    setTagList: (tags: Tag[]) => void;
 }
 
 export interface PictureReceive {

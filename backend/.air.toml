@@ -3,7 +3,7 @@ tmp_dir = "tmp"
 
 [build]
 cmd = "go build -o ./tmp/app.exe ./cmd"
-entrypoint = "D:/projects/app-picturemap/picture/backend/tmp/app.exe"
+entrypoint = "./tmp/app.exe"
 
 include_ext = ["go", "tpl", "tmpl", "html"]
 exclude_dir = ["tmp", "vendor", "node_modules", "client", "uploads", "data"]

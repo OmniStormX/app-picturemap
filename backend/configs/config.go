@@ -9,11 +9,6 @@ import (
 var EnvMap map[string]string
 
 func init() {
-	// path, err := os.Getwd()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println("path:", path)
 
 	fmt.Println("Loading environment variables from .env file")
 	err := godotenv.Load()
