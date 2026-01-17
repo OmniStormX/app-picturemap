@@ -68,7 +68,7 @@ type GetTagListRequest struct {
 }
 
 type TagListReply struct {
-	TagList []tag.Tag `json:"tag_list"`
+	TagList []tag.TagShow `json:"tag_list"`
 }
 
 type UploadImageRequest struct {

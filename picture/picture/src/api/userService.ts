@@ -68,9 +68,7 @@ export async function uploadPicture(
     formData.append("name", name);
     
     // 循环添加 tags 以符合 []string 结构
-    tags.forEach(tag => {
-        formData.append("tags", tag);
-    });
+    formData.append("tags", JSON.stringify(tags));
 
     return await request<BaseReply<UploadImageReply>>("/protected/upload", {
         method: "POST",

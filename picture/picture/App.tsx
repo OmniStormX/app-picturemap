@@ -6,7 +6,6 @@
  */
 
 import { Appbar, Provider as PaperProvider } from 'react-native-paper';
-import { MD3LightTheme } from "react-native-paper";
 import {
     SafeAreaProvider,
 } from 'react-native-safe-area-context';

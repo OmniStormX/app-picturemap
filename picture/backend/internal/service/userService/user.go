@@ -2,6 +2,7 @@ package user_service
 
 import (
 	"backend/database"
+	"backend/database/mapper"
 	"backend/modal/picture"
 	"backend/modal/tag"
 	modal_user "backend/modal/user"
@@ -33,7 +34,7 @@ func GetPictureList(c *gin.Context) {
 		return
 	}
 	// 从数据库中获取图片列表
-	pictureList, err := database.GetPictureList(uint(req.Page), uint(req.PageSize))
+	pictureList, err := mapper.GetPictureList(uint(req.Page), uint(req.PageSize))
 	if err != nil {
 		log.Println("get picture list error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -67,7 +68,7 @@ func GetListByTag(c *gin.Context) {
 		return
 	}
 	// 从数据库中获取图片列表
-	pictureList, err := database.FindByTagFromPicture(req.Tag, uint(req.Page), uint(req.PageSize))
+	pictureList, err := mapper.FindByTagFromPicture(req.Tag, uint(req.Page), uint(req.PageSize))
 	if err != nil {
 		log.Println("get picture list by tag error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -89,20 +90,7 @@ func GetListByTag(c *gin.Context) {
 }
 
 func GetTagList(c *gin.Context) {
-	// var req GetTagListRequest
-	// if err := c.ShouldBindJSON(&req); err != nil {
-	// 	log.Println("bind json error:", err)
-	// 	c.JSON(400, baseReply[ErrorReply]{
-	// 		Status: "error",
-	// 		Msg: ErrorReply{
-	// 			Error: "bind json error",
-	// 		},
-	// 	})
-	// 	return
-	// }
-
-	// 从数据库中获取标签列表
-	tagList, err := database.GetTagList()
+	tagList, err := mapper.GetTagList()
 	if err != nil {
 		log.Println("get tag list error:", err)
 		c.JSON(400, baseReply[ErrorReply]{
@@ -123,6 +111,7 @@ func GetTagList(c *gin.Context) {
 }
 
 func Upload(c *gin.Context) {
+	log.Println("upload file")
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		log.Println("get form file error:", err)
@@ -168,26 +157,19 @@ func Upload(c *gin.Context) {
 	// 尝试从表单中获取标签数据
 	tagsStr := c.PostForm("tags") // 如果前端以这种方式发送标签
 	var tags []string
-
 	// 如果前端将标签作为JSON字符串发送
-	if tagsStr != "" {
-		// 尝试解析JSON格式的标签
-		if err := json.Unmarshal([]byte(tagsStr), &tags); err != nil {
-			log.Println("parse tags error:", err)
-			// 如果不是JSON格式，可能是逗号分隔的字符串
-			tags = strings.Split(tagsStr, ",")
-			for i, tag := range tags {
-				tags[i] = strings.TrimSpace(tag)
-			}
-		}
-	} else {
-		// 尝试直接从表单获取多个标签字段
-		tags = c.PostFormArray("tags[]")
-		if len(tags) == 0 {
-			// 如果没有找到标签，则创建空切片
-			tags = []string{}
-		}
+	err = json.Unmarshal([]byte(tagsStr), &tags)
+	if err != nil {
+		log.Println("parse tags error:", err)
+		c.JSON(400, baseReply[ErrorReply]{
+			Status: "error",
+			Msg: ErrorReply{
+				Error: "parse tags error",
+			},
+		})
+		return
 	}
+	log.Println("tags:", tags)
 
 	picture := picture.Picture{
 		Name: fileName,
@@ -246,7 +228,7 @@ func Upload(c *gin.Context) {
 				Name: tagName,
 				Pid:  int(picture.Pid),
 			}
-			err = database.AddTag(tagRecord)
+			err = mapper.AddTag(tagRecord)
 			if err != nil {
 				log.Printf("add tag error. tag name: %s, pid: %d, error: %v", tagName, picture.Pid, err)
 				// 不返回错误，只是记录
@@ -407,7 +389,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	user, err := database.FindByUsername(req.Username)
+	user, err := mapper.FindByUsername(req.Username)
 
 	// 查询用户
 	if err != nil {
@@ -432,6 +414,7 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
+
 	// 生成token
 	token, err := utils.GeneratedJwtToken(user.ID)
 	if err != nil {
